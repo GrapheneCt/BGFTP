@@ -3,6 +3,8 @@ Background FTP server for PS Vita.
 
 Works simultaneously with any game, including enlarged memory mode games, and in sleep mode. BGFTP can send various information to user via notifications.
 
+Can be somewhat slow when cpu-hungry game process is running due to BGFTP process having low priority.
+
 # How to use
 
 1. Install [LowMemMode plugin](https://github.com/GrapheneCt/LowMemMode) to increase multitasking abilities. It is not required, but highly recommended.
