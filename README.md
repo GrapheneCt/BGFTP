@@ -11,7 +11,9 @@ Can be somewhat slow when cpu-hungry game process is running due to BGFTP proces
 2. Intstall .vpk, start BGFTP application.
 3. Press X button to start BGFTP background application.
 4. Now you can use BGFTP.
-5. To disable notifications, go to Settings -> Notifications -> BGFTP.
+
+To disable notifications, go to Settings -> Notifications -> BGFTP.
+Don't forget to terminate BGFTP after you finished using it, otherwise you system will not switch to sleep mode.
 
 ###### BGFTP background application can be terminated under following conditions:
 
