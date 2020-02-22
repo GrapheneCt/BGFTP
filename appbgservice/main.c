@@ -140,18 +140,9 @@ int main(void)
 	
 	/* ftpvita */
 
-	int run = 1;
-	SceAppUtilInitParam init_param;
-	SceAppUtilBootParam boot_param;
-
 	sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
 
-	memset(&init_param, 0, sizeof(SceAppUtilInitParam));
-	memset(&boot_param, 0, sizeof(SceAppUtilBootParam));
-	sceAppUtilInit(&init_param, &boot_param);
-
 	ftpvita_set_info_log_cb(sendNotificationFixed);
-
 	ftpvita_init_app();
 
 	/* emergency callback in case system somehow gets suspended */
@@ -161,7 +152,7 @@ int main(void)
 
 	/* main loop */
 
-	while (run) {
+	while (1) {
 		sceKernelPowerTick(SCE_KERNEL_POWER_TICK_DISABLE_AUTO_SUSPEND);
 		sceKernelDelayThreadCB(100);
 	}
