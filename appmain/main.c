@@ -43,8 +43,6 @@ int main()
 	pgf = vita2d_load_default_pgf();
 
 	sceSysmoduleLoadModule(SCE_SYSMODULE_BG_APP_UTIL);
-	/*printf("\nBG Application Sample for PS Vita\n");
-	printf("Press X button to start BG application\n\n");*/
 
 	SceCtrlData ctrl,ctrl_old={};
 
