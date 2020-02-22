@@ -1,0 +1,11 @@
+version: 2
+firmware: 3.60
+modules:
+  SceGxm:
+    nid: 0x0D0AA0CB
+    libraries:
+      SceGxmInternalForVsh:
+        kernel: false
+        nid: 0xC98AEB79
+        functions:
+          SceGxmInternalForVsh_A04F5FAC: 0xA04F5FAC
