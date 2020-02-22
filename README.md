@@ -1,7 +1,7 @@
 # BGFTP
 Background FTP server for PS Vita.
 
-Works simultaneously with any game, including enlarged memory mode games, and in sleep mode. BGFTP can send various information to user via notifications.
+Works simultaneously with any game, including enlarged memory mode games, and in sleep mode. Runs on system-reserved core, so performance in games is not affected. BGFTP can send various information to user via notifications.
 
 Can be somewhat slow when cpu-hungry game process is running due to BGFTP process having low priority.
 
