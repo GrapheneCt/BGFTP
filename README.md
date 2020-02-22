@@ -15,7 +15,7 @@ Can be somewhat slow when cpu-hungry game process is running due to BGFTP proces
 To disable notifications, go to Settings -> Notifications -> BGFTP.
 Don't forget to terminate BGFTP after you finished using it, otherwise you system will not switch to sleep mode.
 
-###### BGFTP background application can be terminated under following conditions:
+#### BGFTP background application can be terminated under following conditions:
 
 1. LiveArea of the main application is peeled off.
 2. Enlarged memory mode game is started. BGFTP can be relaunched afterwards if you have [LowMemMode plugin](https://github.com/GrapheneCt/LowMemMode) installed.
