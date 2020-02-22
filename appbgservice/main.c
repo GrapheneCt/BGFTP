@@ -80,10 +80,10 @@ void ftpvita_init_app()
 
 	ftpvita_add_device("app0:");
 	ftpvita_add_device("savedata0:");
-	/*
+	
 	ftpvita_add_device("music0:");
 	ftpvita_add_device("photo0:");
-	ftpvita_add_device("video0:");
+	/*ftpvita_add_device("video0:");
 	ftpvita_add_device("cache0:");
 	ftpvita_add_device("empr0:");
 	ftpvita_add_device("book0:");*/
@@ -118,6 +118,11 @@ int main(void)
 	mspace = sceClibMspaceCreate(clibm_base, CLIB_HEAP_SIZE);
 
 	ftpvita_pass_mspace(mspace);
+	
+	/* mount virtual drives */
+
+	sceAppMgrAppDataMount(105, "music0:");
+	sceAppMgrAppDataMount(100, "photo0:");
 
 	/* load settings - not implemented yet */
 
