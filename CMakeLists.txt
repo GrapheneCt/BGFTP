@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 2.8)
 
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-  if(DEFINED ENV{VITASDK})
-    set(CMAKE_TOOLCHAIN_FILE "$ENV{VITASDK}/share/vita.toolchain.cmake" CACHE PATH "toolchain file")
+  if(DEFINED ENV{DOLCESDK})
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{DOLCESDK}/share/dolce.toolchain.cmake" CACHE PATH "toolchain file")
   else()
-    message(FATAL_ERROR "Please define VITASDK to point to your SDK path!")
+    message(FATAL_ERROR "Please define DOLCESDK to point to your SDK path!")
   endif()
 endif()
 
-include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
+include("$ENV{DOLCESDK}/share/dolce.cmake" REQUIRED)
 project(appbgservice)
 add_subdirectory(notificationutil)
 add_subdirectory(libkernel)
@@ -17,7 +17,6 @@ add_executable(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}
   appbgservice/main.c
   appbgservice/ftpvita.c
 )
-set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-Wall")
 link_directories(${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(${PROJECT_NAME}
   SceNetCtl_stub
@@ -32,10 +31,10 @@ target_link_libraries(${PROJECT_NAME}
   ScePower_stub
   SceNotificationUtil_stub_weak
 )
-vita_create_self(eboot2.bin ${PROJECT_NAME} UNSAFE)
+dolce_create_self(eboot2.bin ${PROJECT_NAME} UNSAFE)
 
 add_custom_target(${PROJECT_NAME}.vpk ALL
-	COMMAND vita-mksfoex 
+	COMMAND dolce-mksfoex 
 	-s APP_VER=01.00
 	-d ATTRIBUTE=528384
 	-s CATEGORY=gdd
@@ -50,12 +49,15 @@ add_custom_target(${PROJECT_NAME}.vpk ALL
 project(appmain)
 add_subdirectory(bgapputil)
 add_executable(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/appmain/main.c)
-set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-Wall")
+set_target_properties(${PROJECT_NAME}
+  PROPERTIES LINK_FLAGS
+  -nostartfiles
+)
 link_directories(${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(${PROJECT_NAME}
   SceLibKernel_stub
   SceDisplay_stub
-  ScePgf_stub 
+  ScePvf_stub 
   SceIofilemgr_stub
   SceCtrl_stub
   SceSysmodule_stub
@@ -66,11 +68,14 @@ target_link_libraries(${PROJECT_NAME}
   SceGxm_stub_weak 
   vita2d_sys
 )
-vita_create_self(eboot.bin ${PROJECT_NAME} UNSAFE)
+dolce_create_self(eboot.bin appmain
+  CONFIG ${CMAKE_SOURCE_DIR}/appmain.yml
+  UNSAFE
+)
 
 set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d ATTRIBUTE=16814080 -s CATEGORY=gdc -s PUBTOOLINFO=has_bg=1")
 
-vita_create_vpk(${PROJECT_NAME}.vpk BGFTP0010 eboot.bin
+dolce_create_vpk(${PROJECT_NAME}.vpk BGFTP0010 eboot.bin
   VERSION 01.00
   NAME "BGFTP"
   FILE ${CMAKE_CURRENT_BINARY_DIR}/eboot2.bin eboot2.bin

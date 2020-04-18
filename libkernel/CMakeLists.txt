@@ -10,7 +10,7 @@ add_custom_target("${LIB}.target"
 add_custom_command(
   OUTPUT "${LIB_FILE}"
   DEPENDS "${LIB_YAML}"
-  COMMAND vita-libs-gen "${LIB_YAML}" "${LIB_BUILD_DIR}"
+  COMMAND dolce-libs-gen "${LIB_YAML}" "${LIB_BUILD_DIR}"
   COMMAND make -C "${LIB_BUILD_DIR}"
   COMMAND mv "${LIB_BUILD_DIR}/libSceLibKernel_stub_weak.a" "${LIB_FILE}"
 )
