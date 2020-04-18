@@ -32,23 +32,8 @@ extern int SceBgAppUtil_7C3525B5(int);
 
 int main()
 {
-	return sceKernelExitProcess(0);
-}
-
-int module_stop(SceSize argc, const void *args) {
-	return SCE_KERNEL_STOP_SUCCESS;
-}
-
-int module_exit() {
-	return SCE_KERNEL_STOP_SUCCESS;
-}
-void _start() __attribute__((weak, alias("module_start")));
-int module_start(SceSize argc, void *args) {
-	
 	sceSysmoduleLoadModule(SCE_SYSMODULE_BG_APP_UTIL);
 	SceBgAppUtil_7C3525B5(0);
 
-	main();
-
-	return SCE_KERNEL_START_SUCCESS;
+	return sceKernelExitProcess(0);
 }

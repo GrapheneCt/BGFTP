@@ -49,10 +49,6 @@ add_custom_target(${PROJECT_NAME}.vpk ALL
 project(appmain)
 add_subdirectory(bgapputil)
 add_executable(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/appmain/main.c)
-set_target_properties(${PROJECT_NAME}
-  PROPERTIES LINK_FLAGS
-  -nostartfiles
-)
 link_directories(${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(${PROJECT_NAME}
   SceLibKernel_stub
@@ -68,12 +64,9 @@ target_link_libraries(${PROJECT_NAME}
   SceGxm_stub_weak 
   vita2d_sys
 )
-dolce_create_self(eboot.bin appmain
-  CONFIG ${CMAKE_SOURCE_DIR}/appmain.yml
-  UNSAFE
-)
+dolce_create_self(eboot.bin appmain UNSAFE)
 
-set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d ATTRIBUTE=16814080 -s CATEGORY=gdc -s PUBTOOLINFO=has_bg=1")
+set(DOLCE_MKSFOEX_FLAGS "${DOLCE_MKSFOEX_FLAGS} -d ATTRIBUTE=16814080 -s CATEGORY=gdc -s PUBTOOLINFO=has_bg=1")
 
 dolce_create_vpk(${PROJECT_NAME}.vpk BGFTP0010 eboot.bin
   VERSION 01.00
