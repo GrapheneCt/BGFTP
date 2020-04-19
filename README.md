@@ -21,9 +21,9 @@ Don't forget to terminate BGFTP after you finished using it, otherwise you syste
 2. Enlarged memory mode game is started. BGFTP can be relaunched afterwards if you have [LowMemMode plugin](https://github.com/GrapheneCt/LowMemMode) installed.
 
 # How to build
-This application use [libvita2d_sys](https://github.com/GrapheneCt/libvita2d_sys) and modified version of libftpvita.
+To build this application you will need [libvita2d_sys](https://github.com/GrapheneCt/libvita2d_sys).
 
-Use dolcesdk to build application. After building, boot params for both executables must be set manually. Refer to the precompiled version for the values.
+Use DolceSDK to build application.
 
 # Credits
 
