@@ -31,7 +31,7 @@ target_link_libraries(${PROJECT_NAME}
   ScePower_stub
   SceNotificationUtil_stub_weak
 )
-dolce_create_self(eboot2.bin ${PROJECT_NAME} UNSAFE)
+dolce_create_self(eboot2.bin ${PROJECT_NAME} UNSAFE BOOT_PARAM boot_param2.bin)
 
 add_custom_target(${PROJECT_NAME}.vpk ALL
 	COMMAND dolce-mksfoex 
@@ -64,7 +64,7 @@ target_link_libraries(${PROJECT_NAME}
   SceGxm_stub_weak 
   vita2d_sys
 )
-dolce_create_self(eboot.bin appmain UNSAFE)
+dolce_create_self(eboot.bin appmain UNSAFE BOOT_PARAM boot_param.bin)
 
 set(DOLCE_MKSFOEX_FLAGS "${DOLCE_MKSFOEX_FLAGS} -d ATTRIBUTE=16814080 -s CATEGORY=gdc -s PUBTOOLINFO=has_bg=1")
 
