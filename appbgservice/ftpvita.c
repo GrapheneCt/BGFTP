@@ -6,12 +6,11 @@
 #include "ftpvita.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 #include <sys/syslimits.h>
 
 #include <psp2/kernel/threadmgr.h>
+#include <psp2/kernel/clib.h>
 
 #include <psp2/io/fcntl.h>
 #include <psp2/io/dirent.h>
@@ -31,8 +30,8 @@
 
 #define FTP_DEFAULT_PATH   "/"
 
-#define MAX_DEVICES 16
-#define MAX_CUSTOM_COMMANDS 16
+#define MAX_DEVICES 20
+#define MAX_CUSTOM_COMMANDS 20
 
 /* PSVita paths are in the form:
  *     <device name>:<filename in device>
@@ -41,12 +40,9 @@
  *     /cache0:/foo/bar
  */
 
-extern void* sceClibMspaceCreate(void* base, uint32_t size);
-extern void* sceClibMspaceMalloc(void* space, unsigned int size);
-extern void sceClibMspaceFree(void* space, void* adress);
-extern void* sceClibMemset(void* s, int c, SceSize n);
-extern void* sceClibMemcpy(void* destination, const void* source, SceSize num);
 extern int SceNotificationUtil_DE6F33F4(const char*);
+
+char* sceClibStrchr(char* str, int character);
 
 typedef struct {
 	const char *cmd;
@@ -81,13 +77,18 @@ static int net_init = -1;
 static void (*info_log_cb)(const char *) = NULL;
 static void (*debug_log_cb)(const char *) = NULL;
 
+size_t strlen(const char * str)
+{
+	return sceClibStrnlen(str, 0x470);
+}
+
 static void log_func(ftpvita_log_cb_t log_cb, const char *s, ...)
 {
 	if (log_cb) {
 		char buf[256];
 		va_list argptr;
 		va_start(argptr, s);
-		vsnprintf(buf, sizeof(buf), s, argptr);
+		sceClibVsnprintf(buf, sizeof(buf), s, argptr);
 		va_end(argptr);
 		log_cb(buf);
 	}
@@ -97,14 +98,14 @@ static void log_func(ftpvita_log_cb_t log_cb, const char *s, ...)
 #define DEBUG(...) log_func(debug_log_cb, __VA_ARGS__)
 
 #define client_send_ctrl_msg(cl, str) \
-	sceNetSend(cl->ctrl_sockfd, str, strlen(str), 0)
+	sceNetSend(cl->ctrl_sockfd, str, sceClibStrnlen(str, 0x470), 0)
 
 static inline void client_send_data_msg(ftpvita_client_info_t *client, const char *str)
 {
 	if (client->data_con_type == FTP_DATA_CONNECTION_ACTIVE) {
-		sceNetSend(client->data_sockfd, str, strlen(str), 0);
+		sceNetSend(client->data_sockfd, str, sceClibStrnlen(str, 0x470), 0);
 	} else {
-		sceNetSend(client->pasv_sockfd, str, strlen(str), 0);
+		sceNetSend(client->pasv_sockfd, str, sceClibStrnlen(str, 0x470), 0);
 	}
 }
 
@@ -128,7 +129,7 @@ static inline void client_send_data_raw(ftpvita_client_info_t *client, const voi
 
 static inline const char *get_vita_path(const char *path)
 {
-	if (strlen(path) > 1)
+	if (sceClibStrnlen(path, 0x470) > 1)
 		/* /cache0:/foo/bar -> cache0:/foo/bar */
 		return &path[1];
 	else
@@ -177,7 +178,7 @@ static void cmd_PASV_func(ftpvita_client_info_t *client)
 
 	/* Create data mode socket name */
 	char data_socket_name[64];
-	sprintf(data_socket_name, "FTPVita_client_%i_data_socket",
+	sceClibSnprintf(data_socket_name, 0x470, "FTPVita_client_%i_data_socket",
 		client->num);
 
 	/* Create the data socket */
@@ -212,7 +213,7 @@ static void cmd_PASV_func(ftpvita_client_info_t *client)
 	DEBUG("PASV mode port: 0x%04X\n", picked.sin_port);
 
 	/* Build the command */
-	sprintf(cmd, "227 Entering Passive Mode (%hhu,%hhu,%hhu,%hhu,%hhu,%hhu)" FTPVITA_EOL,
+	sceClibSnprintf(cmd, 0x470, "227 Entering Passive Mode (%hhu,%hhu,%hhu,%hhu,%hhu,%hhu)" FTPVITA_EOL,
 		(vita_addr.s_addr >> 0) & 0xFF,
 		(vita_addr.s_addr >> 8) & 0xFF,
 		(vita_addr.s_addr >> 16) & 0xFF,
@@ -242,7 +243,7 @@ static void cmd_PORT_func(ftpvita_client_info_t *client)
 	data_port = portlo + porthi*256;
 
 	/* Convert to an X.X.X.X IP string */
-	sprintf(ip_str, "%d.%d.%d.%d",
+	sceClibSnprintf(ip_str, 0x470, "%d.%d.%d.%d",
 		data_ip[0], data_ip[1], data_ip[2], data_ip[3]);
 
 	/* Convert the IP to a SceNetInAddr */
@@ -252,7 +253,7 @@ static void cmd_PORT_func(ftpvita_client_info_t *client)
 
 	/* Create data mode socket name */
 	char data_socket_name[64];
-	sprintf(data_socket_name, "FTPVita_client_%i_data_socket",
+	sceClibSnprintf(data_socket_name, 0x470, "FTPVita_client_%i_data_socket",
 		client->num);
 
 	/* Create data mode socket */
@@ -321,13 +322,13 @@ static int gen_list_format(char *out, int n, int dir, const SceIoStat *stat, con
 	sceRtcGetCurrentClockLocalTime(&cdt);
 
 	if  (cdt.year == stat->st_mtime.year) {
-		snprintf(yt, sizeof(yt), "%02d:%02d", stat->st_mtime.hour, stat->st_mtime.minute);
+		sceClibSnprintf(yt, sizeof(yt), "%02d:%02d", stat->st_mtime.hour, stat->st_mtime.minute);
 	}
 	else {
-		snprintf(yt, sizeof(yt), "%04d", stat->st_mtime.year);
+		sceClibSnprintf(yt, sizeof(yt), "%04d", stat->st_mtime.year);
 	}
 
-	return snprintf(out, n,
+	return sceClibSnprintf(out, n,
 		"%c%s 1 vita vita %u %s %-2d %s %s" FTPVITA_EOL,
 		dir ? 'd' : '-',
 		dir ? "rwxr-xr-x" : "rw-r--r--",
@@ -350,7 +351,7 @@ static void send_LIST(ftpvita_client_info_t *client, const char *path)
 
 	/* "/" path is a special case, if we are here we have
 	 * to send the list of devices (aka mountpoints). */
-	if (strcmp(path, "/") == 0) {
+	if (sceClibStrcmp(path, "/") == 0) {
 		send_devices = 1;
 	}
 
@@ -415,19 +416,19 @@ static void cmd_LIST_func(ftpvita_client_info_t *client)
 static void cmd_PWD_func(ftpvita_client_info_t *client)
 {
 	char msg[PATH_MAX];
-	snprintf(msg, sizeof(msg), "257 \"%s\" is the current directory." FTPVITA_EOL, client->cur_path);
+	sceClibSnprintf(msg, sizeof(msg), "257 \"%s\" is the current directory." FTPVITA_EOL, client->cur_path);
 	client_send_ctrl_msg(client, msg);
 }
 
 static int path_is_at_root(const char *path)
 {
-	return strrchr(path, '/') == (path + strlen(path) - 1);
+	return sceClibStrrchr(path, '/') == (path + sceClibStrnlen(path, 0x470) - 1);
 }
 
 static void dir_up(char *path)
 {
 	char *pch;
-	size_t len_in = strlen(path);
+	size_t len_in = sceClibStrnlen(path, 0x470);
 	if (len_in == 1) {
 		strcpy(path, "/");
 		return;
@@ -435,11 +436,11 @@ static void dir_up(char *path)
 	if (path_is_at_root(path)) { /* Case root of the device (/foo0:/) */
 		strcpy(path, "/");
 	} else {
-		pch = strrchr(path, '/');
+		pch = sceClibStrrchr(path, '/');
 		size_t s = len_in - (pch - path);
 		sceClibMemset(pch, '\0', s);
 		/* If the path is like: /foo: add slash */
-		if (strrchr(path, '/') == path)
+		if (sceClibStrrchr(path, '/') == path)
 			strcat(path, "/");
 	}
 }
@@ -454,9 +455,9 @@ static void cmd_CWD_func(ftpvita_client_info_t *client)
 	if (n < 1) {
 		client_send_ctrl_msg(client, "500 Syntax error, command unrecognized." FTPVITA_EOL);
 	} else {
-		if (strcmp(cmd_path, "/") == 0) {
+		if (sceClibStrcmp(cmd_path, "/") == 0) {
 			strcpy(client->cur_path, cmd_path);
-		} else  if (strcmp(cmd_path, "..") == 0) {
+		} else  if (sceClibStrcmp(cmd_path, "..") == 0) {
 			dir_up(client->cur_path);
 		} else {
 			if (cmd_path[0] == '/') { /* Full path */
@@ -465,17 +466,17 @@ static void cmd_CWD_func(ftpvita_client_info_t *client)
 				/* If we are at the root of the device, don't add
 				 * an slash to add new path */
 				if (path_is_at_root(client->cur_path))
-					snprintf(tmp_path, sizeof(tmp_path), "%s%s", client->cur_path, cmd_path);
+					sceClibSnprintf(tmp_path, sizeof(tmp_path), "%s%s", client->cur_path, cmd_path);
 				else
-					snprintf(tmp_path, sizeof(tmp_path), "%s/%s", client->cur_path, cmd_path);
+					sceClibSnprintf(tmp_path, sizeof(tmp_path), "%s/%s", client->cur_path, cmd_path);
 			}
 
 			/* If the path is like: /foo: add an slash */
-			if (strrchr(tmp_path, '/') == tmp_path)
+			if (sceClibStrrchr(tmp_path, '/') == tmp_path)
 				strcat(tmp_path, "/");
 
 			/* If the path is not "/", check if it exists */
-			if (strcmp(tmp_path, "/") != 0) {
+			if (sceClibStrcmp(tmp_path, "/") != 0) {
 				/* Check if the path exists */
 				pd = sceIoDopen(get_vita_path(tmp_path));
 				if (pd < 0) {
@@ -564,15 +565,15 @@ static void gen_ftp_fullpath(ftpvita_client_info_t *client, char *path, size_t p
 
 	if (cmd_path[0] == '/') {
 		/* Full path */
-		strncpy(path, cmd_path, path_size);
+		sceClibStrncpy(path, cmd_path, path_size);
 	} else {
-		if (strlen(cmd_path) >= 5 && cmd_path[3] == ':' && cmd_path[4] == '/') {
+		if (sceClibStrnlen(cmd_path, 0x470) >= 5 && cmd_path[3] == ':' && cmd_path[4] == '/') {
 			/* Case "ux0:/foo */
-			snprintf(path, path_size, "/%s", cmd_path);
+			sceClibSnprintf(path, path_size, "/%s", cmd_path);
 		} else {
 			/* The file is relative to current dir, so
 			 * append the file to the current path */
-			snprintf(path, path_size, "%s/%s", client->cur_path, cmd_path);
+			sceClibSnprintf(path, path_size, "%s/%s", client->cur_path, cmd_path);
 		}
 	}
 }
@@ -746,7 +747,7 @@ static void cmd_SIZE_func(ftpvita_client_info_t *client)
 		return;
 	}
 	/* Send the size of the file */
-	sprintf(cmd, "213 %lld" FTPVITA_EOL, stat.st_size);
+	sceClibSnprintf(cmd, 0x470, "213 %lld" FTPVITA_EOL, stat.st_size);
 	client_send_ctrl_msg(client, cmd);
 }
 
@@ -754,7 +755,7 @@ static void cmd_REST_func(ftpvita_client_info_t *client)
 {
 	char cmd[64];
 	sscanf(client->recv_buffer, "%*[^ ] %d", &client->restore_point);
-	sprintf(cmd, "350 Resuming at %d" FTPVITA_EOL, client->restore_point);
+	sceClibSnprintf(cmd, 0x470, "350 Resuming at %d" FTPVITA_EOL, client->restore_point);
 	client_send_ctrl_msg(client, cmd);
 }
 
@@ -817,14 +818,14 @@ static cmd_dispatch_func get_dispatch_func(const char *cmd)
 {
 	int i;
 	for(i = 0; cmd_dispatch_table[i].cmd && cmd_dispatch_table[i].func; i++) {
-		if (strcmp(cmd, cmd_dispatch_table[i].cmd) == 0) {
+		if (sceClibStrcmp(cmd, cmd_dispatch_table[i].cmd) == 0) {
 			return cmd_dispatch_table[i].func;
 		}
 	}
 	// Check for custom commands
 	for(i = 0; i < MAX_CUSTOM_COMMANDS; i++) {
 		if (custom_command_dispatchers[i].valid) {
-			if (strcmp(cmd, custom_command_dispatchers[i].cmd) == 0) {
+			if (sceClibStrcmp(cmd, custom_command_dispatchers[i].cmd) == 0) {
 				return custom_command_dispatchers[i].func;
 			}
 		}
@@ -934,7 +935,7 @@ static int client_thread(SceSize args, void *argp)
 			/* The command is the first chars until the first space */
 			sscanf(client->recv_buffer, "%s", cmd);
 
-			client->recv_cmd_args = strchr(client->recv_buffer, ' ');
+			client->recv_cmd_args = sceClibStrchr(client->recv_buffer, ' ');
 			if (client->recv_cmd_args)
 				client->recv_cmd_args++; /* Skip the space */
 			else
@@ -1040,7 +1041,7 @@ static int server_thread(SceSize args, void *argp)
 
 			/* Create a new thread for the client */
 			char client_thread_name[64];
-			sprintf(client_thread_name, "FTPVita_client_%i_thread",
+			sceClibSnprintf(client_thread_name, 0x470, "FTPVita_client_%i_thread",
 				number_clients);
 
 			SceUID client_thid = sceKernelCreateThread(
@@ -1236,7 +1237,7 @@ int ftpvita_del_device(const char *devname)
 {
 	int i;
 	for (i = 0; i < MAX_DEVICES; i++) {
-		if (strcmp(devname, device_list[i].name) == 0) {
+		if (sceClibStrcmp(devname, device_list[i].name) == 0) {
 			device_list[i].valid = 0;
 			return 1;
 		}
@@ -1277,7 +1278,7 @@ int ftpvita_ext_del_custom_command(const char *cmd)
 {
 	int i;
 	for (i = 0; i < MAX_CUSTOM_COMMANDS; i++) {
-		if (strcmp(cmd, custom_command_dispatchers[i].cmd) == 0) {
+		if (sceClibStrcmp(cmd, custom_command_dispatchers[i].cmd) == 0) {
 			custom_command_dispatchers[i].valid = 0;
 			return 1;
 		}

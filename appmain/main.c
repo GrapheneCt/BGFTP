@@ -30,7 +30,9 @@ int sceAppMgrGetBudgetInfo(sceAppMgrBudgetInfo*);*/
 /* start BG service */
 extern int SceBgAppUtil_7C3525B5(int);
 
-int main()
+int _newlib_heap_size_user = 128 * 1024;
+
+int main(void)
 {
 	sceSysmoduleLoadModule(SCE_SYSMODULE_BG_APP_UTIL);
 	SceBgAppUtil_7C3525B5(0);
