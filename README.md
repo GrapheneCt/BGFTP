@@ -21,8 +21,6 @@ Don't forget to terminate BGFTP after you finished using it, otherwise you syste
 # How to build
 To build this application you will need [libvita2d_sys](https://github.com/GrapheneCt/libvita2d_sys).
 
-Use DolceSDK to build application.
-
 # Credits
 
 This application use modified versions of libftpvita and libvita2d by xerpi.
