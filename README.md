@@ -9,8 +9,6 @@ Can be somewhat slow when cpu-hungry game process is running due to BGFTP proces
 
 1. Install [LowMemMode plugin](https://github.com/GrapheneCt/LowMemMode) to increase multitasking abilities. It is not required, but highly recommended.
 2. Intstall .vpk, start BGFTP application.
-3. Press X button to start BGFTP background application.
-4. Now you can use BGFTP.
 
 To disable notifications, go to Settings -> Notifications -> BGFTP.
 Don't forget to terminate BGFTP after you finished using it, otherwise you system will not switch to sleep mode.
