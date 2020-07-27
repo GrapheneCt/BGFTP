@@ -34,6 +34,7 @@
 
 #define MAX_DEVICES 20
 #define MAX_CUSTOM_COMMANDS 20
+#define MAX_ASYNC_IO_HANDLES 6
 
 /* PSVita paths are in the form:
  *     <device name>:<filename in device>
@@ -71,6 +72,7 @@ static int server_sockfd;
 static int number_clients = 0;
 static ftpvita_client_info_t *client_list = NULL;
 static SceUID client_list_mtx;
+static SceUID async_io_handle[MAX_ASYNC_IO_HANDLES];
 
 static int netctl_init = -1;
 static int net_init = -1;
@@ -341,13 +343,15 @@ static int gen_list_format(char *out, int n, int dir, const SceIoStat *stat, con
 
 static void send_LIST(ftpvita_client_info_t *client, const char *path)
 {
-	int i;
+	int i, io_num;
 	char buffer[512];
-	SceUID dir;
+	SceUID dir = 0;
 	SceIoDirent dirent;
 	SceIoStat stat;
+	SceIoAsyncParam param;
 	char *devname;
 	int send_devices = 0;
+	io_num = -1;
 
 	/* "/" path is a special case, if we are here we have
 	 * to send the list of devices (aka mountpoints). */
@@ -388,7 +392,19 @@ static void send_LIST(ftpvita_client_info_t *client, const char *path)
 			sceClibMemset(buffer, 0, sizeof(buffer));
 		}
 
-		sceIoDclose(dir);
+		for (int i = 0; i < MAX_ASYNC_IO_HANDLES; i++) {
+			if (async_io_handle[i] == 0) {
+				io_num = i;
+				break;
+			}
+		}
+
+		if (io_num != -1) {
+			async_io_handle[io_num] = sceIoDcloseAsync(dir, &param);
+			io_num = -1;
+		}
+		else
+			sceIoDclose(dir);
 	}
 
 	DEBUG("Done sending LIST\n");
@@ -450,6 +466,8 @@ static void cmd_CWD_func(ftpvita_client_info_t *client)
 	char cmd_path[PATH_MAX];
 	char tmp_path[PATH_MAX];
 	SceUID pd;
+	int io_num = -1;
+	SceIoAsyncParam param;
 	int n = sceLibcSscanf(client->recv_cmd_args, "%[^\r\n\t]", cmd_path);
 
 	if (n < 1) {
@@ -483,7 +501,20 @@ static void cmd_CWD_func(ftpvita_client_info_t *client)
 					client_send_ctrl_msg(client, "550 Invalid directory." FTPVITA_EOL);
 					return;
 				}
-				sceIoDclose(pd);
+
+				for (int i = 0; i < MAX_ASYNC_IO_HANDLES; i++) {
+					if (async_io_handle[i] == 0) {
+						io_num = i;
+						break;
+					}
+				}
+
+				if (io_num != -1) {
+					async_io_handle[io_num] = sceIoDcloseAsync(pd, &param);
+					io_num = -1;
+				}
+				else
+					sceIoDclose(pd);
 			}
 			sceLibcStrcpy(client->cur_path, tmp_path);
 		}
@@ -525,15 +556,45 @@ static void send_file(ftpvita_client_info_t *client, const char *path)
 	unsigned char *buffer;
 	SceUID fd;
 	SceIoStat stat;
+	SceIoAsyncParam param;
 	unsigned int iterator = 1, bytes_remainder;
+	int io_num = -1;
 
 	DEBUG("Opening: %s\n", path);
 
+	for (int i = 0; i < MAX_ASYNC_IO_HANDLES; i++) {
+		if (async_io_handle[i] == 0) {
+			io_num = i;
+			break;
+		}
+	}
+
+	if (io_num != -1) {
+		async_io_handle[io_num] = sceIoGetstatAsync(path, &stat, &param);
+		io_num = -1;
+	}
+	else
+		sceIoGetstat(path, &stat);
+
 	if ((fd = sceIoOpen(path, SCE_O_RDONLY, 0777)) >= 0) {
 
+		for (int i = 0; i < MAX_ASYNC_IO_HANDLES; i++) {
+			if (async_io_handle[i] == 0) {
+				io_num = i;
+				break;
+			}
+		}
+
+		if (io_num != -1) {
+			async_io_handle[io_num] = sceIoLseekAsync(fd, (SceOff)client->restore_point, SCE_SEEK_SET, &param);
+			io_num = -1;
+		}
+		else
+			sceIoLseek32(fd, client->restore_point, SCE_SEEK_SET);
+
+		stat.st_size = (unsigned int)stat.st_size - client->restore_point;
+
 		/* Calculate number of full iterations */
-		sceIoGetstat(path, &stat);
-		stat.st_size = (SceOff)((unsigned int)stat.st_size - client->restore_point);
 		bytes_remainder = (unsigned int)stat.st_size;
 
 		while (bytes_remainder > file_buf_size){
@@ -541,8 +602,6 @@ static void send_file(ftpvita_client_info_t *client, const char *path)
 			if (bytes_remainder > 0)
 				iterator++;
 		}
-
-		sceIoLseek32(fd, client->restore_point, SCE_SEEK_SET);
 
 		buffer = sceLibcMalloc(file_buf_size);
 		if (buffer == NULL) {
@@ -565,7 +624,20 @@ static void send_file(ftpvita_client_info_t *client, const char *path)
 			client_send_data_raw(client, buffer, bytes_remainder);
 		}
 
-		sceIoClose(fd);
+		for (int i = 0; i < MAX_ASYNC_IO_HANDLES; i++) {
+			if (async_io_handle[i] == 0) {
+				io_num = i;
+				break;
+			}
+		}
+
+		if (io_num != -1) {
+			async_io_handle[io_num] = sceIoCloseAsync(fd, &param);
+			io_num = -1;
+		}
+		else
+			sceIoClose(fd);
+
 		sceLibcFree(buffer);
 		client->restore_point = 0;
 		client_send_ctrl_msg(client, "226 Transfer completed." FTPVITA_EOL);
@@ -609,7 +681,8 @@ static void receive_file(ftpvita_client_info_t *client, const char *path)
 {
 	unsigned char *buffer;
 	SceUID fd;
-	int bytes_recv;
+	SceIoAsyncParam param;
+	int bytes_recv, io_num = -1;;
 
 	DEBUG("Opening: %s\n", path);
 
@@ -638,17 +711,43 @@ static void receive_file(ftpvita_client_info_t *client, const char *path)
 			sceIoWrite(fd, buffer, bytes_recv);
 		}
 
-		sceIoClose(fd);
+		for (int i = 0; i < MAX_ASYNC_IO_HANDLES; i++) {
+			if (async_io_handle[i] == 0) {
+				io_num = i;
+				break;
+			}
+		}
+
+		if (io_num != -1) {
+			async_io_handle[io_num] = sceIoCloseAsync(fd, &param);
+			io_num = -1;
+		}
+		else
+			sceIoClose(fd);
+
 		sceLibcFree(buffer);
 		client->restore_point = 0;
 		if (bytes_recv == 0) {
 			client_send_ctrl_msg(client, "226 Transfer completed." FTPVITA_EOL);
 		} else {
-			sceIoRemove(path);
+			
+			for (int i = 0; i < MAX_ASYNC_IO_HANDLES; i++) {
+				if (async_io_handle[i] == 0) {
+					io_num = i;
+					break;
+				}
+			}
+
+			if (io_num != -1) {
+				async_io_handle[io_num] = sceIoRemoveAsync(path, &param);
+				io_num = -1;
+			}
+			else
+				sceIoRemove(path);
+
 			client_send_ctrl_msg(client, "426 Connection closed; transfer aborted." FTPVITA_EOL);
 		}
 		client_close_data_connection(client);
-
 	} else {
 		client_send_ctrl_msg(client, "550 File not found." FTPVITA_EOL);
 	}
@@ -1039,6 +1138,14 @@ static int server_thread(SceSize args, void *argp)
 
 	while (1) {
 
+		/* Check async IO */
+		for (int i = 0; i < MAX_ASYNC_IO_HANDLES; i++) {
+			if (async_io_handle[i] > 0) {
+				if (!sceIoPollAsync(async_io_handle[i]))
+					async_io_handle[i] = 0;
+			}
+		}
+
 		/* Accept clients */
 		SceNetSockaddrIn clientaddr;
 		int client_sockfd;
@@ -1067,7 +1174,7 @@ static int server_thread(SceSize args, void *argp)
 
 			SceUID client_thid = sceKernelCreateThread(
 				client_thread_name, client_thread,
-				80, 0x10000, 0, 0, NULL);
+				0x10000100, 0x10000, 0, 0, NULL);
 
 			DEBUG("Client %i thread UID: 0x%08X\n", number_clients, client_thid);
 
@@ -1109,6 +1216,11 @@ int ftpvita_init(char *vita_ip, unsigned short int *vita_port)
 
 	if (ftp_initialized) {
 		return -1;
+	}
+
+	/* Init async io handle array */
+	for (int i = 0; i < MAX_ASYNC_IO_HANDLES; i++) {
+		async_io_handle[i] = 0;
 	}
 
 	/* Init Net */
@@ -1153,7 +1265,7 @@ int ftpvita_init(char *vita_ip, unsigned short int *vita_port)
 
 	/* Create server thread */
 	server_thid = sceKernelCreateThread("FTPVita_server_thread",
-		server_thread, 180, 0x10000, 0, 0, NULL);
+		server_thread, 0x10000100, 0x10000, 0, 0, NULL);
 	DEBUG("Server thread UID: 0x%08X\n", server_thid);
 
 	/* Create the client list mutex */

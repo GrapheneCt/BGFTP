@@ -16,7 +16,6 @@ typedef void (*ftpvita_log_cb_t)(const char *);
 int ftpvita_init(char *vita_ip, unsigned short int *vita_port);
 void ftpvita_fini();
 int ftpvita_is_initialized();
-void ftpvita_pass_mspace(void *mspace);
 int ftpvita_add_device(const char *devname);
 int ftpvita_del_device(const char *devname);
 void ftpvita_set_info_log_cb(ftpvita_log_cb_t cb);

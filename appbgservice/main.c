@@ -7,27 +7,19 @@
 #include <psp2/registrymgr.h> 
 #include <psp2/appmgr.h> 
 #include <psp2/sysmodule.h>
-#include <psp2/io/fcntl.h> 
+#include <psp2/kernel/iofilemgr.h> 
 #include <psp2/kernel/sysmem.h> 
 #include <psp2/kernel/clib.h> 
 #include <psp2/apputil.h> 
+#include <psp2/notification_util.h> 
+#include <psp2/incoming_dialog.h> 
+#include <psp2/fiber.h> 
 
 #include <ftpvita.h>
+#include "libc.h"
 
-typedef struct SceIncomingDialogParam {
-	int fw; //ex. 0x1650041
-	char titleid[0x10]; //ex. "PCSA00044" (icon0.png of that app will be shown in dialog window)
-	char audioPath[0x80]; //ex. "app0:resource/CallRingingIn.mp3" .at9 and .aac also supported (audio will be played while dialog is active, playback is done by sceShell)
-	unsigned int dialogTimer; //Time to show dialog in seconds (including audio)
-	int unk_BC; //ex. 1
-	char reserved1[0x3E];
-	char buttonRightText[0x3E]; //UTF-16 (function - accept. Opens app from titleid)
-	short separator0; //must be 0
-	char buttonLeftText[0x3E]; //UTF-16 (function - reject). If 0, only right button will be created
-	short separator1; //must be 0
-	char dialogWindowText[0x100]; //UTF-16 (also displayed in first notification)
-	short separator2; //must be 0
-} SceIncomingDialogParam;
+#define ULT_NUM_MAX_THREADS 16
+#define ULT_NUM_WORKER_THREAD 1
 
 typedef struct SceAppMgrEvent { // size is 0x64
 	int event;						/* Event ID */
@@ -35,21 +27,8 @@ typedef struct SceAppMgrEvent { // size is 0x64
 	char  param[56];		/* Parameters to pass with the event */
 } SceAppMgrEvent;
 
-#define CLIB_HEAP_SIZE 14 * 1024 * 1024
-int _newlib_heap_size_user = 128 * 1024;
-
 /* appmgr */
 extern int _sceAppMgrReceiveEvent(SceAppMgrEvent *appEvent);
-
-/* init BG notification */
-extern int SceNotificationUtilBgApp_CBE814C1(void);
-
-/* send notification request */
-extern int SceNotificationUtil_DE6F33F4(const char*);
-
-/* incoming dialog */
-extern int SceIncomingDialog_18AF99EB(int);
-extern int SceIncomingDialog_2BEDC1A0(const SceIncomingDialogParam*);
 
 static char msgbuf[0x470] = { 0 };
 static char msg[0x470] = { 0 };
@@ -70,14 +49,14 @@ void copycon(char* str1, const char* str2)
 void sendNotificationFixed(const char* str)
 {
 	copycon(msgbuf, str);
-	SceNotificationUtil_DE6F33F4(msgbuf);
+	sceNotificationUtilSendNotification((SceWChar16 *)msgbuf);
 	sceClibMemset(msgbuf, 0, 0x470);
 }
 
 void sendNotificationCustom()
 {
 	copycon(msgbuf, msg);
-	SceNotificationUtil_DE6F33F4(msgbuf);
+	sceNotificationUtilSendNotification((SceWChar16 *)msgbuf);
 	sceClibMemset(msgbuf, 0, 0x470);
 	sceClibMemset(msg, 0, 0x470);
 }
@@ -116,7 +95,7 @@ void ftpvita_init_app()
 	sendNotificationCustom();
 }
 
-int main(void) 
+void _start(unsigned int args, void *argp)
 {
 	/* network check */
 
@@ -127,21 +106,21 @@ int main(void)
 	sceRegMgrGetKeyInt("/CONFIG/NET", "wifi_flag", &wifi);
 	sceRegMgrGetKeyInt("/CONFIG/SYSTEM", "flight_mode", &plane);
 
-	if (wifi == 0 || plane == 1) {
+	if (!wifi || plane) {
 
 		sceSysmoduleLoadModule(SCE_SYSMODULE_INCOMING_DIALOG);
 
-		SceIncomingDialog_18AF99EB(0);
+		sceIncomingDialogInit(0);
 
 		SceIncomingDialogParam params;
 		sceClibMemset(&params, 0, sizeof(SceIncomingDialogParam));
-		params.fw = 0x3570011;
-		sceClibStrncpy(params.titleid, "BGFTP0011", sizeof(params.titleid));
+		params.sdkVersion = SCE_PSP2_SDK_VERSION;
+		sceClibStrncpy((char *)params.titleid, "BGFTP0011", sizeof(params.titleid));
 		params.dialogTimer = 0x7FFFFFF0;
 		params.unk_BC = 1;
-		copycon(params.buttonRightText, "OK");
-		copycon(params.dialogWindowText, "Wi-Fi is disabled or system is in airplane mode.\n   Please enable Wi-Fi and start BGFTP again.");
-		SceIncomingDialog_2BEDC1A0(&params);
+		copycon((char *)params.buttonRightText, "OK");
+		copycon((char *)params.dialogText, "Wi-Fi is disabled or system is in airplane mode.\n   Please enable Wi-Fi and start BGFTP again.");
+		sceIncomingDialogOpen(&params);
 
 		while (1) {
 			_sceAppMgrReceiveEvent(&appEvent);
@@ -152,37 +131,20 @@ int main(void)
 			sceKernelDelayThread(10000);
 		}
 	}
-
-	/* ftpvita clib mspace*/
-
-	void* mspace;
-	void* clibm_base;
-	SceUID clib_heap = sceKernelAllocMemBlock("ClibHeap", SCE_KERNEL_MEMBLOCK_TYPE_USER_RW, CLIB_HEAP_SIZE, NULL);
-	sceKernelGetMemBlockBase(clib_heap, &clibm_base);
-
-	mspace = sceClibMspaceCreate(clibm_base, CLIB_HEAP_SIZE);
-
-	ftpvita_pass_mspace(mspace);
 	
 	/* mount virtual drives */
 
 	sceAppMgrAppDataMount(105, "music0:");
 	sceAppMgrAppDataMount(100, "photo0:");
 
-	/* load settings - not implemented yet */
-
-	/*SceUID fd = sceIoOpen("ux0:data/ftp_bg/config.ini", SCE_O_RDONLY, 0777);
-	sceIoRead(fd, &notificationMode, sizeof(int));
-	sceIoClose(fd);*/
-
 	/* BG application*/
 
 	sceSysmoduleLoadModule(SCE_SYSMODULE_NOTIFICATION_UTIL);
 
-	SceNotificationUtilBgApp_CBE814C1();
+	sceNotificationUtilBgAppInitialize();
 
 	sendNotificationFixed("BGFTP has started successfully.");
-	
+
 	/* ftpvita */
 
 	sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
@@ -196,6 +158,4 @@ int main(void)
 		sceKernelPowerTick(SCE_KERNEL_POWER_TICK_DISABLE_AUTO_SUSPEND);
 		sceKernelDelayThread(10000);
 	}
-
-	return sceAppMgrDestroyAppByAppId(-2);
 }

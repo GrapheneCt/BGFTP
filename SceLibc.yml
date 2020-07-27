@@ -1,0 +1,30 @@
+version: 2
+firmware: 3.60
+modules:
+  SceLibc:
+    nid: 0x43FBA801
+    libraries:
+      SceLibc:
+        kernel: false
+        nid: 0xBE43BB07
+        functions:
+          sceLibcStrcpy: 0x85B924B7
+          sceLibcStrlen: 0x8AECC873
+          sceLibcStrcat: 0x1434FA46
+          sceLibcQsort: 0xA7CBE4A6
+          sceLibcRand: 0xC0883865
+          sceLibcSrand: 0x3AAD41B0
+          sceLibcAtoi: 0x21493BE7
+          sceLibcSscanf: 0xEC585241
+          sceLibcStrcasecmp: 0x184C4B07
+          sceLibcMalloc: 0x775A0CB2
+          sceLibcCalloc: 0xE7EC3D0B
+          sceLibcFree: 0x5B9BB802
+      SceLibm:
+        kernel: false
+        nid: 0xCDAE3C7D
+        functions:
+          sceLibmRound: 0x64D37996
+          sceLibmExp: 0xEB027358
+          sceLibmPow: 0x640DB443
+          sceLibmFabs: 0x3E672BE3

@@ -14,21 +14,21 @@ add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/boot_param.bin
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/boot_param2.bin
   COMMAND dolce-make-bootparam app_memsize 0x1000 ${CMAKE_CURRENT_BINARY_DIR}/boot_param.bin
-  COMMAND dolce-make-bootparam app_memsize 0x4000 attribute 0x03 ${CMAKE_CURRENT_BINARY_DIR}/boot_param2.bin
+  COMMAND dolce-make-bootparam app_memsize 0x4000 attribute 0x03 directory_max_level 0x12 ${CMAKE_CURRENT_BINARY_DIR}/boot_param2.bin
 )
 
 project(appbgservice)
-dolce_gen_libs(SceNotificationUtil_stubs
-  SceNotificationUtil.yml
-  LIB SceNotificationUtil_stub_weak)
-dolce_gen_libs(SceIncomingDialog_stubs
-  SceIncomingDialog.yml
-  LIB SceIncomingDialog_stub_weak)
+
+dolce_gen_libs(SceLibc_stubs
+  SceLibc.yml
+  LIB SceLibc_stub_weak)
+  
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O3")
+
 add_executable(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}
   appbgservice/main.c
   appbgservice/ftpvita.c
 )
-set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-Wall")
 link_directories(${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(${PROJECT_NAME}
   SceNetCtl_stub
@@ -43,9 +43,19 @@ target_link_libraries(${PROJECT_NAME}
   SceAppMgr_stub
   SceAppUtil_stub 
   ScePower_stub
-  SceNotificationUtil_stub_weak
-  SceIncomingDialog_stub_weak
+  SceRtc_stub
+  SceFiber_stub
+  SceNotificationUtil_stub
+  SceIncomingDialog_stub
+  SceLibc_stub_weak
 )
+
+set(DOLCE_ELF_CREATE_FLAGS "${DOLCE_ELF_CREATE_FLAGS} -h 14680064")
+
+set_target_properties(${PROJECT_NAME}
+  PROPERTIES LINK_FLAGS "-nostdlib"
+)
+
 dolce_create_self(eboot2.bin
   ${PROJECT_NAME}
   UNSAFE
@@ -53,22 +63,20 @@ dolce_create_self(eboot2.bin
 )
 
 project(appmain)
-dolce_gen_libs(SceBgAppUtil_stubs
-  SceBgAppUtil.yml
-  LIB SceBgAppUtil_stub_weak)
+  
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O3 -fno-builtin")
+  
 add_executable(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/appmain/main.c)
-set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-Wall")
 link_directories(${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(${PROJECT_NAME}
   SceLibKernel_stub
-  SceIofilemgr_stub
-  SceCtrl_stub
   SceSysmodule_stub
   SceAppMgr_stub
-  SceLibKernel_stub_weak
-  SceBgAppUtil_stub_weak
-  SceGxm_stub_weak 
+  SceBgAppUtil_stub
 )
+
+set(DOLCE_ELF_CREATE_FLAGS "${DOLCE_ELF_CREATE_FLAGS} -h 262144")
+
 dolce_create_self(eboot.bin
   ${PROJECT_NAME}
   UNSAFE
