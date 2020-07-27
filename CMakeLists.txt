@@ -86,7 +86,7 @@ dolce_create_self(eboot.bin
 set(DOLCE_MKSFOEX_FLAGS "${DOLCE_MKSFOEX_FLAGS} -d ATTRIBUTE=16814080 -s CATEGORY=gdc -s PUBTOOLINFO=has_bg=1")
 
 dolce_create_vpk(${PROJECT_NAME}.vpk BGFTP0010 eboot.bin
-  VERSION 02.00
+  VERSION 03.00
   NAME "BGFTP"
   FILE ${CMAKE_CURRENT_BINARY_DIR}/eboot2.bin eboot2.bin
   FILE common_data/sce_sys/param2.sfo sce_sys/param2.sfo
