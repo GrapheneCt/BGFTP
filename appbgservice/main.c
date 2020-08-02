@@ -16,10 +16,6 @@
 #include <psp2/fiber.h> 
 
 #include <ftpvita.h>
-#include "libc.h"
-
-#define ULT_NUM_MAX_THREADS 16
-#define ULT_NUM_WORKER_THREAD 1
 
 typedef struct SceAppMgrEvent { // size is 0x64
 	int event;						/* Event ID */
@@ -115,7 +111,7 @@ void _start(unsigned int args, void *argp)
 		SceIncomingDialogParam params;
 		sceClibMemset(&params, 0, sizeof(SceIncomingDialogParam));
 		params.sdkVersion = SCE_PSP2_SDK_VERSION;
-		sceClibStrncpy((char *)params.titleid, "BGFTP0011", sizeof(params.titleid));
+		sceClibStrncpy((char *)params.titleid, "GRVA00002", sizeof(params.titleid));
 		params.dialogTimer = 0x7FFFFFF0;
 		params.unk_BC = 1;
 		copycon((char *)params.buttonRightText, "OK");
