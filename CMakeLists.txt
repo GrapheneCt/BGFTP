@@ -93,7 +93,7 @@ set(DOLCE_MKSFOEX_FLAGS "${DOLCE_MKSFOEX_FLAGS} -d ATTRIBUTE=16814080 -d SAVEDAT
 dolce_create_vpk(${PROJECT_NAME}.vpk GRVA00001 eboot.bin
   VERSION 03.10
   NAME "BGFTP"
-  CONTENT_ID_NAME "BGFTPSERVER00000"
+  CONTENT_ID_LABEL "BGFTPSERVER00000"
   FILE ${CMAKE_CURRENT_BINARY_DIR}/eboot2.bin eboot2.bin
   FILE common_data/sce_sys/param2.sfo sce_sys/param2.sfo
   FILE common_data/sce_sys/icon0.png sce_sys/icon0.png
