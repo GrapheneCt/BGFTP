@@ -23,4 +23,4 @@ Use DolceSDK to build this application.
 
 # Credits
 
-This application use modified versions of libftpvita and libvita2d by xerpi.
+This application use modified versions of libftpvita by xerpi.
