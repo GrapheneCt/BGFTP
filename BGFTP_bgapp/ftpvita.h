@@ -5,10 +5,12 @@
 #ifndef FTPVITA_H
 #define FTPVITA_H
 
-#include <psp2/types.h>
-#include <sys/syslimits.h>
-#include <psp2/net/net.h>
-#include <psp2/net/netctl.h>
+#include <scetypes.h>
+#include <net.h>
+
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 
 typedef void (*ftpvita_log_cb_t)(const char *);
 

@@ -1,9 +1,0 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
-<livearea style="a1" format-ver="01.03">
-  <livearea-background>
-    <image>bg0.png</image>
-  </livearea-background>
-  <gate>
-    <startup-image>gate.png</startup-image>
-  </gate>
-</livearea>

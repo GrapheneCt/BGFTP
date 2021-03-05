@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.1401
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BGFTP", "BGFTP\BGFTP.vcxproj", "{33F8FD72-9B4C-4A21-B98E-982E0223C4D1}"
+	ProjectSection(ProjectDependencies) = postProject
+		{AAA54014-0536-43E4-9E41-F12162F554AE} = {AAA54014-0536-43E4-9E41-F12162F554AE}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BGFTP_bgapp", "BGFTP_bgapp\BGFTP_bgapp.vcxproj", "{AAA54014-0536-43E4-9E41-F12162F554AE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|PSVita = Debug|PSVita
+		Release|PSVita = Release|PSVita
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{33F8FD72-9B4C-4A21-B98E-982E0223C4D1}.Debug|PSVita.ActiveCfg = Debug|PSVita
+		{33F8FD72-9B4C-4A21-B98E-982E0223C4D1}.Debug|PSVita.Build.0 = Debug|PSVita
+		{33F8FD72-9B4C-4A21-B98E-982E0223C4D1}.Release|PSVita.ActiveCfg = Release|PSVita
+		{33F8FD72-9B4C-4A21-B98E-982E0223C4D1}.Release|PSVita.Build.0 = Release|PSVita
+		{AAA54014-0536-43E4-9E41-F12162F554AE}.Debug|PSVita.ActiveCfg = Debug|PSVita
+		{AAA54014-0536-43E4-9E41-F12162F554AE}.Debug|PSVita.Build.0 = Debug|PSVita
+		{AAA54014-0536-43E4-9E41-F12162F554AE}.Release|PSVita.ActiveCfg = Release|PSVita
+		{AAA54014-0536-43E4-9E41-F12162F554AE}.Release|PSVita.Build.0 = Release|PSVita
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {264E35B0-D995-4569-A376-BF1DB23F08B9}
+	EndGlobalSection
+EndGlobal
