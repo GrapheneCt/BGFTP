@@ -13,6 +13,14 @@
 
 #include "ftpvita.h"
 
+ // User main thread parameters
+const char		sceUserMainThreadName[] = "BGFTP_bgserv";
+int				sceUserMainThreadPriority = SCE_KERNEL_DEFAULT_PRIORITY_USER;
+unsigned int	sceUserMainThreadStackSize = SCE_KERNEL_STACK_SIZE_DEFAULT_USER_MAIN;
+
+// Libc parameters
+unsigned int	sceLibcHeapSize = 14 * 1024 * 1024;
+
 typedef struct SceAppMgrEvent {
 	int		event;			/* Event ID */
 	SceUID	appId;			/* Application ID. Added when required by the event */
@@ -35,7 +43,10 @@ void sendNotification(const char *text, ...)
 
 	sceClibMemset(&param, 0, sizeof(SceNotificationUtilSendParam));
 
-	sceCesUtf8ToUtf16(
+	SceCesUcsContext context;
+	sceCesUcsContextInit(&context);
+	sceCesUtf8StrToUtf16Str(
+		&context,
 		(uint8_t *)buf,
 		SCE_NOTIFICATION_UTIL_TEXT_MAX / sizeof(uint16_t),
 		&inSize,
@@ -97,8 +108,12 @@ int main()
 		sceIncomingDialogParamInit(&params);
 		sceClibStrncpy((char *)params.titleId, "GRVA00002", sizeof(params.titleId));
 		params.timeout = 0x7FFFFFF0;
-		
-		sceCesUtf8ToUtf16(
+
+		SceCesUcsContext context;
+
+		sceCesUcsContextInit(&context);
+		sceCesUtf8StrToUtf16Str(
+			&context,
 			"OK",
 			SCE_NOTIFICATION_UTIL_TEXT_MAX / sizeof(uint16_t),
 			&inSize,
@@ -106,12 +121,14 @@ int main()
 			0x20,
 			&outSize);
 
-		sceCesUtf8ToUtf16(
-			"Wi-Fi is disabled or system is in airplane mode.\n   Please enable Wi-Fi and start BGFTP again.",
+		sceCesUcsContextInit(&context);
+		sceCesUtf8StrToUtf16Str(
+			&context,
+			"Wi-Fi is disabled or system is in airplane mode.",
 			95,
 			&inSize,
 			(uint16_t *)params.dialogText,
-			0x20,
+			0x40,
 			&outSize);
 
 		sceIncomingDialogOpen(&params);
