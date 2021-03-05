@@ -18,9 +18,6 @@ Don't forget to terminate BGFTP after you finished using it, otherwise you syste
 1. LiveArea of the main application is peeled off.
 2. Enlarged memory mode game is started. BGFTP can be relaunched afterwards if you have [LowMemMode plugin](https://github.com/GrapheneCt/LowMemMode) installed.
 
-# How to build
-Use DolceSDK to build this application.
-
 # Credits
 
 This application use modified versions of libftpvita by xerpi.
