@@ -7,6 +7,7 @@
 #include <libsysmodule.h>
 #include <kernel.h>
 #include <apputil.h>
+#include <libnetctl.h>
 #include <notification_util.h>
 #include <incoming_dialog.h>
 #include <ces.h>
@@ -60,6 +61,7 @@ void sendNotification(const char *text, ...)
 void ftpvita_init_app()
 {
 	char vita_ip[16];
+	int state;
 	unsigned short int vita_port;
 
 	ftpvita_init(vita_ip, &vita_port);

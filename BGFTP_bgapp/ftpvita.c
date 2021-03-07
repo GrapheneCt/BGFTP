@@ -1121,6 +1121,12 @@ int ftpvita_init(char *vita_ip, unsigned short int *vita_port)
 	if (netctl_init < 0 && netctl_init != NET_CTL_ERROR_NOT_TERMINATED)
 		goto error_netctlinit;
 
+	int state;
+	do {
+		sceNetCtlInetGetState(&state);
+		sceKernelDelayThread(10000);
+	} while (state != SCE_NET_CTL_STATE_IPOBTAINED);
+
 	/* Get IP address */
 	ret = sceNetCtlInetGetInfo(SCE_NET_CTL_INFO_IP_ADDRESS, &info);
 	DEBUG("sceNetCtlInetGetInfo(): 0x%08X\n", ret);
