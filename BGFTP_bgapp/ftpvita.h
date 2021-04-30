@@ -20,6 +20,7 @@ void ftpvita_fini();
 int ftpvita_is_initialized();
 int ftpvita_add_device(const char *devname);
 int ftpvita_del_device(const char *devname);
+void ftpvita_set_notif_log_cb(ftpvita_log_cb_t cb);
 void ftpvita_set_info_log_cb(ftpvita_log_cb_t cb);
 void ftpvita_set_debug_log_cb(ftpvita_log_cb_t cb);
 void ftpvita_set_file_buf_size(unsigned int size);

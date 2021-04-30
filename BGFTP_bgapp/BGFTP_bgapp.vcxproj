@@ -52,7 +52,7 @@
     </Link>
     <Link>
       <GenerateSnMapFile>FullMapFile</GenerateSnMapFile>
-      <AdditionalDependencies>-lSceCes;-lSceAppMgr_stub;-lSceNet_stub;-lSceIncomingDialog_stub;-lSceNotificationUtil_stub;-lSceNotificationUtilBgApp_stub;-lSceNetCtl_stub;-lSceRegMgr_stub;-lSceRtcUser_stub;-lSceSysmodule_stub;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>-lSceCes;-lSceAppMgr_stub;-lSceNet_stub;-lSceIncomingDialog_stub;-lSceNotificationUtil_stub;-lSceNotificationUtilBgApp_stub;-lSceNetCtl_stub;-lSceRegMgr_stub;-lSceRtcUser_stub;-lSceSysmodule_stub;-lSceAppMgrUser_stub;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|PSVita'">
@@ -67,7 +67,7 @@
     </Link>
     <Link>
       <InfoStripping>StripSymsAndDebug</InfoStripping>
-      <AdditionalDependencies>-lSceCes;-lSceAppMgr_stub;-lSceNet_stub;-lSceIncomingDialog_stub;-lSceNotificationUtil_stub;-lSceNotificationUtilBgApp_stub;-lSceNetCtl_stub;-lSceRegMgr_stub;-lSceRtcUser_stub;-lSceSysmodule_stub;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>-lSceCes;-lSceAppMgr_stub;-lSceNet_stub;-lSceIncomingDialog_stub;-lSceNotificationUtil_stub;-lSceNotificationUtilBgApp_stub;-lSceNetCtl_stub;-lSceRegMgr_stub;-lSceRtcUser_stub;-lSceSysmodule_stub;-lSceAppMgrUser_stub;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>"$(SCE_PSP2_SDK_DIR)/host_tools/build/bin/vdsuite-pubprx.exe" --strip --compress --boot-param "$(ProjectDir)ebootparam.bin" "$(LocalDebuggerCommand)" "$(OutDir)eboot2.bin"
