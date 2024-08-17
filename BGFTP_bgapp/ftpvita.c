@@ -14,6 +14,7 @@
 #include <rtc.h>
 
 #define UNUSED(x) (void)(x)
+#define ALIGN(x, a)	(((x) + ((a) - 1)) & ~((a) - 1))
 
 #define NET_CTL_ERROR_NOT_TERMINATED 0x80412102
 
@@ -52,6 +53,7 @@ static struct {
 static void *net_memory = NULL;
 static int ftp_initialized = 0;
 static unsigned int file_buf_size = DEFAULT_FILE_BUF_SIZE;
+static unsigned int active_op_count = 0;
 static SceNetInAddr vita_addr;
 static SceUID server_thid;
 static int server_sockfd;
@@ -510,6 +512,11 @@ static void send_file(ftpvita_client_info_t *client, const char *path)
 	unsigned char *buffer;
 	SceUID fd;
 	unsigned int bytes_read;
+	unsigned int op_buf_size;
+
+	active_op_count++;
+
+	op_buf_size = ALIGN(file_buf_size / active_op_count, 4 * 1024);
 
 	DEBUG("Opening: %s\n", path);
 
@@ -517,16 +524,17 @@ static void send_file(ftpvita_client_info_t *client, const char *path)
 
 		sceIoLseek32(fd, client->restore_point, SCE_SEEK_SET);
 
-		buffer = malloc(file_buf_size);
+		buffer = malloc(op_buf_size);
 		if (buffer == NULL) {
 			client_send_ctrl_msg(client, "550 Could not allocate memory." FTPVITA_EOL);
+			active_op_count--;
 			return;
 		}
 
 		client_open_data_connection(client);
 		client_send_ctrl_msg(client, "150 Opening Image mode data transfer." FTPVITA_EOL);
 
-		while ((bytes_read = sceIoRead (fd, buffer, file_buf_size)) > 0) {
+		while ((bytes_read = sceIoRead (fd, buffer, op_buf_size)) > 0) {
 			client_send_data_raw(client, buffer, bytes_read);
 		}
 
@@ -540,6 +548,8 @@ static void send_file(ftpvita_client_info_t *client, const char *path)
 	} else {
 		client_send_ctrl_msg(client, "550 File not found." FTPVITA_EOL);
 	}
+
+	active_op_count--;
 }
 
 /* This function generates an FTP full-path with the input path (relative or absolute)
@@ -576,6 +586,11 @@ static void receive_file(ftpvita_client_info_t *client, const char *path)
 	unsigned char *buffer;
 	SceUID fd;
 	int bytes_recv;
+	unsigned int op_buf_size;
+
+	active_op_count++;
+
+	op_buf_size = ALIGN(file_buf_size / active_op_count, 4 * 1024);
 
 	DEBUG("Opening: %s\n", path);
 
@@ -591,16 +606,17 @@ static void receive_file(ftpvita_client_info_t *client, const char *path)
 
 	if ((fd = sceIoOpen(path, mode, 0777)) >= 0) {
 
-		buffer = malloc(file_buf_size);
+		buffer = malloc(op_buf_size);
 		if (buffer == NULL) {
 			client_send_ctrl_msg(client, "550 Could not allocate memory." FTPVITA_EOL);
+			active_op_count--;
 			return;
 		}
 
 		client_open_data_connection(client);
 		client_send_ctrl_msg(client, "150 Opening Image mode data transfer." FTPVITA_EOL);
 
-		while ((bytes_recv = client_recv_data_raw(client, buffer, file_buf_size)) > 0) {
+		while ((bytes_recv = client_recv_data_raw(client, buffer, op_buf_size)) > 0) {
 			sceIoWrite(fd, buffer, bytes_recv);
 		}
 
@@ -620,6 +636,8 @@ static void receive_file(ftpvita_client_info_t *client, const char *path)
 	} else {
 		client_send_ctrl_msg(client, "550 File not found." FTPVITA_EOL);
 	}
+
+	active_op_count--;
 }
 
 static void cmd_STOR_func(ftpvita_client_info_t *client)
@@ -1067,7 +1085,7 @@ static int server_thread(SceSize args, void *argp)
 	return 0;
 }
 
-int ftpvita_init(char *vita_ip, unsigned short int *vita_port)
+int ftpvita_init(char *vita_ip, unsigned short *vita_port)
 {
 	int ret;
 	int i;
@@ -1104,6 +1122,13 @@ int ftpvita_init(char *vita_ip, unsigned short int *vita_port)
 	DEBUG("sceNetCtlInit(): 0x%08X\n", netctl_init);
 	if (netctl_init < 0 && netctl_init != NET_CTL_ERROR_NOT_TERMINATED)
 		goto error_netctlinit;
+
+	sceNetCtlInetGetState(&ret);
+
+	while (ret != SCE_NET_CTL_STATE_IPOBTAINED) {
+		sceNetCtlInetGetState(&ret);
+		sceKernelDelayThread(10000);
+	}
 
 	/* Get IP address */
 	ret = sceNetCtlInetGetInfo(SCE_NET_CTL_INFO_IP_ADDRESS, &info);
@@ -1143,22 +1168,23 @@ int ftpvita_init(char *vita_ip, unsigned short int *vita_port)
 
 	return 0;
 
-error_netctlgetinfo:
-	if (netctl_init == 0) {
-		sceNetCtlTerm();
-		netctl_init = -1;
-	}
 error_netctlinit:
+error_netctlgetinfo:
+error_netinit:
+error_netstat:
 	if (net_init == 0) {
 		sceNetTerm();
 		net_init = -1;
 	}
-error_netinit:
+	if (netctl_init == 0) {
+		sceNetCtlTerm();
+		netctl_init = -1;
+	}
 	if (net_memory) {
 		free(net_memory);
 		net_memory = NULL;
 	}
-error_netstat:
+
 	return ret;
 }
 

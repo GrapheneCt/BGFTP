@@ -62,5 +62,7 @@ int main()
 	sceSysmoduleLoadModule(SCE_SYSMODULE_BG_APP_UTIL);
 	sceBgAppUtilStartBgApp(0);
 
+	common_exit(0);
+
 	return 0;
 }

@@ -27,15 +27,6 @@ extern unsigned int	sce_process_preload_disabled = (SCE_PROCESS_PRELOAD_DISABLED
 // Libc parameters
 unsigned int	sceLibcHeapSize = 14 * 1024 * 1024;
 
-typedef struct SceAppMgrEvent {
-	int		event;			/* Event ID */
-	SceUID	appId;			/* Application ID. Added when required by the event */
-	char	param[56];		/* Parameters to pass with the event */
-} SceAppMgrEvent;
-
-/* appmgr */
-extern int sceAppMgrReceiveEvent(SceAppMgrEvent *appEvent);
-
 void sendNotification(const char *text, ...)
 {
 	SceNotificationUtilSendParam param;
@@ -67,7 +58,7 @@ void ftpvita_init_app()
 {
 	char vita_ip[16];
 	int state;
-	unsigned short int vita_port;
+	unsigned short vita_port;
 
 	ftpvita_set_file_buf_size(6 * 1024 * 1024);
 
@@ -97,61 +88,6 @@ void ftpvita_init_app()
 
 int main()
 {
-	/* network check */
-
-	SceAppMgrEvent appEvent;
-	int plane, wifi, dialogShown;
-	uint32_t inSize, outSize;
-	dialogShown = 0;
-
-	sceRegMgrGetKeyInt("/CONFIG/NET", "wifi_flag", &wifi);
-	sceRegMgrGetKeyInt("/CONFIG/SYSTEM", "flight_mode", &plane);
-
-	if (!wifi || plane) {
-
-		sceSysmoduleLoadModule(SCE_SYSMODULE_INCOMING_DIALOG);
-
-		sceIncomingDialogInit(0);
-
-		SceIncomingDialogParam params;
-		sceIncomingDialogParamInit(&params);
-		sceClibStrncpy((char *)params.titleId, "GRVA00002", sizeof(params.titleId));
-		params.timeout = 0x7FFFFFF0;
-
-		SceCesUcsContext context;
-
-		sceCesUcsContextInit(&context);
-		sceCesUtf8StrToUtf16Str(
-			&context,
-			"OK",
-			6,
-			&inSize,
-			(uint16_t *)params.acceptText,
-			0x20,
-			&outSize);
-
-		sceCesUcsContextInit(&context);
-		sceCesUtf8StrToUtf16Str(
-			&context,
-			"Wi-Fi is disabled or system is in airplane mode.",
-			95,
-			&inSize,
-			(uint16_t *)params.dialogText,
-			0x40,
-			&outSize);
-
-		sceIncomingDialogOpen(&params);
-
-		while (1) {
-			sceAppMgrReceiveEvent(&appEvent);
-			if (appEvent.event == 0x20000004 && dialogShown)
-				sceAppMgrDestroyAppByAppId(-2);
-			else if (appEvent.event == 0x20000004)
-				dialogShown = 1;
-			sceKernelDelayThread(10000);
-		}
-	}
-
 	/* BG application*/
 
 	sceSysmoduleLoadModule(SCE_SYSMODULE_NOTIFICATION_UTIL);
